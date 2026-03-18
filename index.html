@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Bahasa Perintah Robot</title>
+    <style>
+        :root {
+            --neon-blue: #00f2ff; --neon-red: #ff0055; --neon-green: #00ff88;
+            --bg-dark: #05070a; --panel: #0d1117; --border: #30363d;
+            --text-main: #c9d1d9;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Fira Code', 'Courier New', monospace; }
+        
+        body { 
+            background: var(--bg-dark); 
+            color: var(--text-main); 
+            height: 100vh; 
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- PAGE MANAGEMENT --- */
+        .page {
+            display: none;
+            width: 100%;
+            height: 100%;
+            animation: fadeIn 0.5s ease;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        .page.active {
+            display: flex;
+            z-index: 10;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* --- COMMON BUTTONS --- */
+        .btn-action {
+            padding: 12px 30px;
+            font-size: 1rem;
+            background: transparent;
+            border: 2px solid var(--neon-green);
+            color: var(--neon-green);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+            margin: 10px;
+        }
+        .btn-action:hover {
+            background: var(--neon-green);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-green);
+        }
+
+        .btn-back {
+            background: #21262d;
+            color: var(--neon-red);
+            border: 1px solid var(--neon-red);
+            padding: 8px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .btn-back:hover { background: var(--neon-red); color: #fff; }
+
+        /* --- PAGE 1: INTRO --- */
+        #intro-page {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, #161b22 0%, #05070a 100%);
+            text-align: center;
+            padding: 20px;
+            z-index: 20;
+        }
+
+        .intro-title {
+            font-size: 3rem;
+            color: var(--neon-blue);
+            text-shadow: 0 0 20px var(--neon-blue);
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+        }
+
+        .student-info {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px 50px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-bottom: 50px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .student-name {
+            font-size: 1.5rem;
+            color: #fff;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .student-class {
+            font-size: 1.2rem;
+            color: var(--neon-green);
+            font-weight: bold;
+        }
+
+        /* --- PAGE 2: SIMULATOR --- */
+        #sim-page {
+            flex-direction: column;
+            padding: 10px;
+            gap: 10px;
+            z-index: 15;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr 320px;
+            grid-template-rows: 1fr auto;
+            gap: 10px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: #161b22;
+            padding: 10px 15px;
+            font-size: 12px;
+            color: var(--neon-blue);
+            border-bottom: 1px solid var(--border);
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        textarea {
+            flex: 1;
+            background: #0d1117;
+            color: var(--neon-green);
+            border: none;
+            padding: 15px;
+            font-size: 13px;
+            resize: none;
+            outline: none;
+            line-height: 1.5;
+            font-family: 'Fira Code', monospace;
+        }
+
+        .btn-run {
+            background: var(--neon-green);
+            color: #000;
+            padding: 12px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+        }
+        .btn-run:hover { filter: brightness(1.2); }
+
+        #sim-container {
+            grid-column: 2 / 3;
+            grid-row: 1 / 2;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        #sim-area {
+            flex: 1;
+            position: relative;
+            background: #000;
+            border-bottom: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #tree-area {
+            height: 150px;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 11px;
+            background: #010409;
+            border-top: 1px solid var(--border);
+        }
+
+        #control-panel {
+            grid-column: 2 / 3;
+            grid-row: 2 / 3;
+            background: #161b22;
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .control-label {
+            font-size: 10px;
+            color: #8b949e;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .control-btn {
+            background: #21262d;
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .control-btn:hover {
+            background: var(--neon-blue);
+            color: #000;
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        .control-btn:active { transform: scale(0.95); }
+
+        .extra-control {
+            background: #21262d;
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 5px;
+            border-radius: 4px;
+            width: 100%;
+            font-size: 11px;
+            outline: none;
+        }
+        
+        input[type=range] {
+            width: 100%;
+            accent-color: var(--neon-green);
+        }
+
+        .doc-list {
+            padding: 10px;
+            font-size: 11px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .doc-item {
+            margin-bottom: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 4px;
+            border-left: 3px solid var(--neon-blue);
+        }
+        .nt { color: #e1e4e8; font-weight: bold; }
+        .t { color: var(--neon-blue); margin-left: 10px; }
+        .tree-node { margin-left: 10px; border-left: 1px solid #333; padding-left: 5px; }
+
+    </style>
+</head>
+<body>
+
+    <!-- HALAMAN 1: INTRO -->
+    <div id="intro-page" class="page active">
+        <h1 class="intro-title">BAHASA PERINTAH ROBOT</h1>
+        
+        <div class="student-info">
+            <div class="student-name">Kembuan, Fledio Jonathan</div>
+            <div class="student-class">Tugas Automata Pararel A</div>
+        </div>
+
+        <button class="btn-action" onclick="switchPage('sim-page')">▶ START SYSTEM</button>
+    </div>
+
+    <!-- HALAMAN 2: SIMULATOR CODING -->
+    <div id="sim-page" class="page">
+        <div class="top-bar">
+            <div style="color: var(--neon-blue); font-weight: bold;">BAHASA PERINTAH ROBOT</div>
+            <button class="btn-back" onclick="switchPage('intro-page')">◄ BACK TO INTRO</button>
+        </div>
+
+        <div class="main-grid">
+            <!-- Panel Kiri: Editor -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>COMMAND_EDITOR.SYS</span>
+                    <span style="color:#555; font-size:10px;">v10.0</span>
+                </div>
+                <textarea id="codeInput" spellcheck="false"># TIPS: Enter untuk RUN
+# Ctrl + Shift + Enter untuk baris baru
+
+pilih biru ;
+maju 100 ;
+belok_kanan ;
+maju 50 ;
+
+pilih merah ;
+maju 100 ;
+belok_kiri ;
+maju 50 ;</textarea>
+                <div style="padding: 5px 15px; font-size: 10px; color: #555;">⌨️ Enter: Run | Ctrl+Shift+Enter: New Line</div>
+                <button class="btn-run" onclick="startSequence()">▶ RUN SYSTEM</button>
+            </div>
+
+            <!-- Panel Tengah: Visualizer -->
+            <div class="panel" id="sim-container">
+                <div class="panel-header">SIMULATION AREA</div>
+                <div id="sim-area">
+                    <canvas id="robotCanvas"></canvas>
+                </div>
+                <div id="tree-area">
+                    <div style="color: #555;"><i>Menunggu eksekusi program...</i></div>
+                </div>
+            </div>
+
+            <!-- Panel Kanan: Dokumentasi -->
+            <div class="panel">
+                <div class="panel-header">CFG_GRAMMAR_LIBRARY</div>
+                <div class="doc-list">
+                    <div class="doc-item"><b>&lt;program&gt;</b> ::= &lt;instruksi&gt; { &lt;instruksi&gt; }</div>
+                    <div class="doc-item"><b>&lt;target&gt;</b> ::= biru | merah | semua</div>
+                    <div class="doc-item"><b>&lt;aksi&gt;</b> ::= maju | mundur | belok_kanan | belok_kiri | ke_atas | ke_bawah</div>
+                    <div class="doc-item"><b>&lt;ekspresi&gt;</b> ::= angka | angka operator angka</div>
+                    <div class="doc-item"><b>operator</b> ::= kali | tambah | kurang | bagi</div>
+                    <hr style="border:0; border-top:1px solid #333; margin:10px 0;">
+                    <div style="color:var(--neon-green); font-size:10px;">
+                        CONTOH:<br>
+                        pilih biru ;<br>
+                        maju 100 ;<br>
+                        belok_kanan ;
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div id="control-panel">
+            <div class="control-group">
+                <div class="control-label">Target Robot</div>
+                <select id="manualTarget" class="extra-control" onchange="updateManualTarget()">
+                    <option value="biru">Biru</option>
+                    <option value="merah">Merah</option>
+                    <option value="semua">Semua</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">Gerakan</div>
+                <div style="display:flex; gap:5px; width:100%;">
+                    <button class="control-btn" onclick="simManualControl('maju')">▲ MAJU</button>
+                    <button class="control-btn" onclick="simManualControl('mundur')">▼ MUNDUR</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">Rotasi</div>
+                <div style="display:flex; gap:5px; width:100%;">
+                    <button class="control-btn" onclick="simManualControl('belok_kiri')">◄ KIRI</button>
+                    <button class="control-btn" onclick="simManualControl('belok_kanan')">► KANAN</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">Vertikal & Speed</div>
+                <div style="display:flex; gap:5px; width:100%; margin-bottom:5px;">
+                    <button class="control-btn" onclick="simManualControl('ke_atas')">⬆ ATAS</button>
+                    <button class="control-btn" onclick="simManualControl('ke_bawah')">⬇ BAWAH</button>
+                </div>
+                <div style="width:100%; font-size:9px; color:#8b949e; display:flex; justify-content:space-between;">
+                    <span>Speed</span>
+                    <span id="speedVal">2</span>
+                </div>
+                <input type="range" min="1" max="10" value="2" id="speedSlider" oninput="document.getElementById('speedVal').innerText = this.value">
+            </div>
+            
+            <div class="control-group" style="justify-content:center;">
+                <button class="control-btn" style="border-color:var(--neon-red); color:var(--neon-red);" onclick="resetRobots()">↻ RESET</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- GLOBAL STATE ---
+    let currentPage = 'intro-page';
+    let animationFrameId;
+
+    // --- PAGE NAVIGATION ---
+    function switchPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        currentPage = pageId;
+        
+        if(pageId === 'sim-page') {
+            setTimeout(initSim, 100);
+        }
+    }
+
+    // --- SIMULATOR LOGIC ---
+    const simCanvas = document.getElementById('robotCanvas');
+    const simCtx = simCanvas.getContext('2d');
+    const treeArea = document.getElementById('tree-area');
+    const input = document.getElementById('codeInput');
+    const speedSlider = document.getElementById('speedSlider');
+
+    let currentManualTarget = 'biru';
+    
+    let simBots = {
+        // Biru di kiri, menghadap KANAN (0 derajat)
+        biru: { x: 200, y: 250, angle: 0, color: "#00f2ff", active: true, swing: 0, isWalking: false },
+        // Merah di kanan, menghadap KIRI (180 derajat)
+        merah: { x: 600, y: 250, angle: 180, color: "#ff0055", active: false, swing: 0, isWalking: false }
+    };
+
+    function updateManualTarget() {
+        currentManualTarget = document.getElementById('manualTarget').value;
+        simBots.biru.active = (currentManualTarget === 'biru' || currentManualTarget === 'semua');
+        simBots.merah.active = (currentManualTarget === 'merah' || currentManualTarget === 'semua');
+    }
+
+    input.addEventListener('keydown', function(e) {
+        if (currentPage !== 'sim-page') return;
+        if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey) {
+            e.preventDefault();
+            startSequence();
+        } else if (e.key === 'Enter' && e.ctrlKey && e.shiftKey) {
+            const start = this.selectionStart;
+            this.value = this.value.substring(0, start) + "\n" + this.value.substring(this.selectionEnd);
+            this.selectionStart = this.selectionEnd = start + 1;
+        }
+    });
+
+    function initSim() {
+        const simArea = document.getElementById('sim-area');
+        simCanvas.width = simArea.clientWidth;
+        simCanvas.height = simArea.clientHeight;
+        
+        simCtx.fillStyle = "#010409";
+        simCtx.fillRect(0, 0, simCanvas.width, simCanvas.height);
+        drawSimStickman(simBots.biru);
+        drawSimStickman(simBots.merah);
+        
+        if(animationFrameId) cancelAnimationFrame(animationFrameId);
+        animateSim();
+    }
+
+    function drawSimStickman(bot) {
+        if(!simCtx) return;
+        simCtx.save();
+        simCtx.translate(bot.x, bot.y);
+        simCtx.rotate(bot.angle * Math.PI / 180);
+        
+        // PERBAIKAN: Jika robot menghadap ke kiri (angle > 90 dan < 270), balikkan gambar secara vertikal
+        // Ini membuat robot merah yang digambar terbalik menjadi tegak setelah diputar 180 derajat.
+        if (bot.angle > 90 && bot.angle < 270) {
+            simCtx.scale(1, -1);
+        }
+
+        simCtx.strokeStyle = bot.color; 
+        simCtx.lineWidth = 4;
+        simCtx.shadowBlur = 10; 
+        simCtx.shadowColor = bot.color;
+
+        const s = bot.isWalking ? Math.sin(bot.swing) * 15 : 0;
+
+        // Menggambar Stickman Tegak (Kepala di Y negatif, Kaki di Y positif)
+        // Kepala
+        simCtx.beginPath(); simCtx.arc(0, -30, 9, 0, Math.PI*2); simCtx.stroke(); 
+        // Badan
+        simCtx.beginPath(); simCtx.moveTo(0, -21); simCtx.lineTo(0, 10); simCtx.stroke(); 
+        // Tangan
+        simCtx.beginPath(); simCtx.moveTo(0, -12); simCtx.lineTo(s, 5); 
+        simCtx.moveTo(0, -12); simCtx.lineTo(-s, 5); simCtx.stroke();
+        // Kaki
+        simCtx.beginPath(); simCtx.moveTo(0, 10); simCtx.lineTo(s, 30); 
+        simCtx.moveTo(0, 10); simCtx.lineTo(-s, 30); simCtx.stroke();
+        
+        // Mata (Indikator arah hadap)
+        simCtx.fillStyle = "#fff"; 
+        simCtx.beginPath(); 
+        simCtx.arc(6, -30, 2, 0, Math.PI*2); 
+        simCtx.fill(); 
+        
+        // Indikator Aktif
+        if(bot.active) {
+            simCtx.setLineDash([3, 3]); 
+            simCtx.strokeStyle = "rgba(255,255,255,0.3)";
+            simCtx.beginPath(); simCtx.arc(0, 0, 45, 0, Math.PI*2); simCtx.stroke();
+        }
+        simCtx.restore();
+    }
+
+    function animateSim() {
+        if(currentPage !== 'sim-page' || !simCtx) return;
+        simCtx.fillStyle = "#010409"; 
+        simCtx.fillRect(0, 0, simCanvas.width, simCanvas.height);
+        
+        drawSimStickman(simBots.biru);
+        drawSimStickman(simBots.merah);
+
+        for(let b in simBots) { 
+            if(simBots[b].isWalking) simBots[b].swing += 0.2; 
+        }
+        
+        animationFrameId = requestAnimationFrame(animateSim);
+    }
+
+    async function simManualControl(cmd) {
+        if(currentPage !== 'sim-page') return;
+        const activeBots = [];
+        if(currentManualTarget === 'semua') {
+            activeBots.push(simBots.biru, simBots.merah);
+        } else {
+            activeBots.push(simBots[currentManualTarget]);
+        }
+        
+        if(activeBots.length === 0 || !activeBots[0]) return;
+
+        const instNode = document.createElement('div');
+        instNode.className = 'tree-node';
+        instNode.style.color = '#fff';
+        instNode.innerHTML = `<span class="nt">&lt;manual&gt;</span> ${cmd}`;
+        treeArea.appendChild(instNode);
+        treeArea.scrollTop = treeArea.scrollHeight;
+
+        const speed = parseInt(speedSlider.value);
+        const moves = activeBots.map(bot => moveSim(bot, cmd, [cmd, (20 * speed)]));
+        await Promise.all(moves);
+    }
+
+    function resetRobots() {
+        simBots.biru = { x: 200, y: 250, angle: 0, color: "#00f2ff", active: (currentManualTarget==='biru'||currentManualTarget==='semua'), swing: 0, isWalking: false };
+        simBots.merah = { x: 600, y: 250, angle: 180, color: "#ff0055", active: (currentManualTarget==='merah'||currentManualTarget==='semua'), swing: 0, isWalking: false };
+        treeArea.innerHTML = '<div style="color:#555;"><i>Sistem di-reset.</i></div>';
+    }
+
+    async function startSequence() {
+        if(currentPage !== 'sim-page') return;
+        const lines = input.value.split('\n');
+        treeArea.innerHTML = "<div class='tree-node'><span class='nt'>&lt;program_start&gt;</span></div>";
+        resetRobots();
+        let currentTarget = currentManualTarget;
+
+        for(let line of lines) {
+            line = line.trim();
+            if(!line || line.startsWith('#')) continue;
+            const parts = line.replace(';', '').split(' ');
+            const cmd = parts[0];
+
+            const instNode = document.createElement('div');
+            instNode.className = 'tree-node';
+            instNode.innerHTML = `<span class="nt">&lt;instruksi&gt;</span> CMD: ${cmd}`;
+            treeArea.appendChild(instNode);
+            treeArea.scrollTop = treeArea.scrollHeight;
+
+            if(cmd === 'pilih') {
+                currentTarget = parts[1];
+                simBots.biru.active = (currentTarget === 'biru' || currentTarget === 'semua');
+                simBots.merah.active = (currentTarget === 'merah' || currentTarget === 'semua');
+                document.getElementById('manualTarget').value = currentTarget;
+                currentManualTarget = currentTarget;
+            } else {
+                let moves = [];
+                for(let b in simBots) {
+                    if(currentTarget === 'semua' || currentTarget === b) {
+                        moves.push(moveSim(simBots[b], cmd, parts));
+                    }
+                }
+                await Promise.all(moves);
+            }
+        }
+        const endNode = document.createElement('div');
+        endNode.className = 'tree-node';
+        endNode.style.color = 'var(--neon-green)';
+        endNode.innerHTML = "<span class='nt'>&lt;program_end&gt;</span> SELESAI";
+        treeArea.appendChild(endNode);
+    }
+
+    function moveSim(bot, cmd, parts) {
+        return new Promise(resolve => {
+            if(cmd.includes('belok')) {
+                bot.angle += (cmd === 'belok_kanan' ? 90 : -90);
+                setTimeout(resolve, 300); return;
+            }
+            let val = parseInt(parts[1]) || 20;
+            if(parts[2] === 'kali') val *= parseInt(parts[3]);
+            if(parts[2] === 'tambah') val += parseInt(parts[3]);
+
+            bot.isWalking = true;
+            let moved = 0; 
+            const baseStep = 2;
+            const speedMult = parseInt(speedSlider.value);
+            const step = baseStep * (speedMult > 1 ? speedMult : 1);
+            const rad = bot.angle * Math.PI / 180;
+
+            const timer = setInterval(() => {
+                if(moved >= val) { 
+                    clearInterval(timer); 
+                    bot.isWalking = false; 
+                    resolve(); 
+                } else {
+                    if(cmd === 'maju') { bot.x += step * Math.cos(rad); bot.y += step * Math.sin(rad); }
+                    if(cmd === 'mundur') { bot.x -= step * Math.cos(rad); bot.y -= step * Math.sin(rad); }
+                    if(cmd === 'ke_atas') bot.y -= step;
+                    if(cmd === 'ke_bawah') bot.y += step;
+                    moved += step;
+                }
+            }, 10);
+        });
+    }
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+        if(currentPage === 'sim-page') initSim();
+    });
+
+</script>
+</body>
+</html>
